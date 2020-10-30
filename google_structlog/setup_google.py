@@ -6,6 +6,7 @@ from google.cloud.logging.handlers.transports.background_thread import _Worker
 from pythonjsonlogger import jsonlogger
 import structlog
 
+from functools import cache as only_run_once
 import datetime
 import json
 import logging
@@ -53,6 +54,7 @@ def get_default_logging_namespace():
   except:
     pass
 
+@only_run_once
 def setup_google_logger(log_name=get_default_logging_namespace()):
   configure_structlog()
   monkeypatch_google_enqueue()
