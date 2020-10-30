@@ -6,7 +6,7 @@ from google.cloud.logging.handlers.transports.background_thread import _Worker
 from pythonjsonlogger import jsonlogger
 import structlog
 
-from functools import cache as only_run_once
+from functools import lru_cache as only_run_once
 import datetime
 import json
 import logging
