@@ -10,15 +10,30 @@ from functools import lru_cache as only_run_once
 import datetime
 import json
 import logging
+import requests
 
 def monkeypatch_google_enqueue():
-  def decode_json_then_enqueue(self, record, message, resource=None, labels=None, trace=None, span_id=None):
+  def decode_structlog_json_then_enqueue(self, record, message, resource=None, labels=None, trace=None, span_id=None, *args, **kwargs):
+    # print("record", record)
+    # print("message", message)
+    # print("resource", resource)
+    # print("labels", labels)
+    # print('trace', trace)
+    # print("span_id", span_id)
+    # print("*args", args)
+    # print("**kwargs", kwargs)
+      
     try:
       info = json.loads(message)
     except json.decoder.JSONDecodeError:
       info = { "message": message }
     finally:
       info["python_logger"] = record.name
+      if not info.get("message"):
+        # move Structlog's log['event'] field to Google Stackdrivers jsonPayload.message key
+        STRUCTLOG_MESSAGE_KEY = "event"
+        info["message"] = info.get(STRUCTLOG_MESSAGE_KEY)
+        info.pop(STRUCTLOG_MESSAGE_KEY, None)
 
     queue_entry = {
       "info": info,
@@ -31,8 +46,8 @@ def monkeypatch_google_enqueue():
     }
 
     self._queue.put_nowait(queue_entry)
-  
-  _Worker.enqueue = decode_json_then_enqueue
+      
+  _Worker.enqueue = decode_structlog_json_then_enqueue
 
 def configure_structlog():
   structlog.configure(
@@ -43,7 +58,14 @@ def configure_structlog():
   )
 
 def get_handler(logName):
-  handler = CloudLoggingHandler(Client(), logName)
+  kwargs = {}
+  try:
+    kwargs['resource'] = get_log_resource_for_gce_instance()
+  except:
+    # Probably not on GCE ;-)
+    pass
+
+  handler = CloudLoggingHandler(Client(), logName, **kwargs)
   handler.setFormatter(jsonlogger.JsonFormatter())
   return handler
 
@@ -54,7 +76,48 @@ def get_default_logging_namespace():
   except:
     pass
 
-@only_run_once
+def get_log_resource_for_gce_instance():
+  # GCE logs not touched by us by default show up under "Cloud Logs" link from the instance
+  # To match this, we need to set the resource field correctly in our logging to match these:
+
+  # EXAMPLE FROM A DEFAULT VM INSTANCE LOG MESSAGE:
+  #
+  # resource: {
+  #   type: "gce_instance"
+  #   labels: {
+  #     project_id: "ceres-imaging-science"
+  #     instance_id: "6201251793328237718"
+  #     zone: "us-west1-a"
+  #   }
+  # }
+
+  # EXAMPLE QUERY OUTPUT BY STACKDRIVER FOR A VM INSTANCE:
+  #
+  # resource.type="gce_instance"
+  # resource.labels.instance_id="6201251793328237718"
+
+
+  # To do this, we're going to use the GCE computeMetadata endpoint
+  # which will give us this info (or fail if we're not on GCE)
+  # 
+  # For a list of all properties we could query on computeMetadata,
+  # see: https://cloud.google.com/compute/docs/storing-retrieving-metadata
+
+  metadata_server = "http://metadata/computeMetadata/v1/"
+  metadata_flavor = {'Metadata-Flavor' : 'Google'}
+  
+  get_compute_metadata = lambda propPath: requests.get(metadata_server + propPath, headers=metadata_flavor).text
+
+  return {
+    'type': 'gce_instance',
+    'labels': {
+      'instance_id': get_compute_metadata('instance/id'),
+      'project_id': get_compute_metadata('project/project-id'),
+      'zone': get_compute_metadata('instance/zone').split('/')[-1],
+    }
+  }
+
+@only_run_once(maxsize=32)
 def setup_google_logger(log_name=get_default_logging_namespace()):
   configure_structlog()
   monkeypatch_google_enqueue()
