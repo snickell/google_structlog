@@ -2,6 +2,7 @@ from google.cloud.logging import Client
 from google.cloud.logging import _helpers
 from google.cloud.logging.handlers import CloudLoggingHandler
 from google.cloud.logging.handlers.transports.background_thread import _Worker
+from google.cloud.logging.resource import Resource
 
 from pythonjsonlogger import jsonlogger
 import structlog
@@ -108,14 +109,11 @@ def get_log_resource_for_gce_instance():
   
   get_compute_metadata = lambda propPath: requests.get(metadata_server + propPath, headers=metadata_flavor).text
 
-  return {
-    'type': 'gce_instance',
-    'labels': {
-      'instance_id': get_compute_metadata('instance/id'),
-      'project_id': get_compute_metadata('project/project-id'),
-      'zone': get_compute_metadata('instance/zone').split('/')[-1],
-    }
-  }
+  return Resource(type='gce_instance', labels={
+    'instance_id': get_compute_metadata('instance/id'),
+    'project_id': get_compute_metadata('project/project-id'),
+    'zone': get_compute_metadata('instance/zone').split('/')[-1],
+  })
 
 @only_run_once(maxsize=32)
 def setup_google_logger(log_name=get_default_logging_namespace()):
