@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="google_structlog",
-    version="2.6.2",
+    version="2.6.14",
     author="Seth Nickell",
     author_email="snickell@gmail.com",
     description="Send queryable JSON structured logs to Google Cloud (GCP) stackdriver from python apps",

@@ -134,7 +134,7 @@ def get_log_resource_for_gce_instance():
 @only_run_once(maxsize=32)
 def setup_google_logger(log_name=get_default_logging_namespace()):
   configure_structlog()
-  monkeypatch_google_enqueue()
+  #monkeypatch_google_enqueue()
 
   google_handler = get_handler(log_name)
   
