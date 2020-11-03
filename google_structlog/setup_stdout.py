@@ -12,9 +12,7 @@ def setup_stdout_logger(
   logger.setLevel(loglevel)
 
   formatter = structlog.stdlib.ProcessorFormatter(
-    processor=structlog.dev.ConsoleRenderer(
-      colors=True
-    ),
+    processor=structlog.dev.ConsoleRenderer(),
   )
 
   handler = logging.StreamHandler(sys.stdout)
