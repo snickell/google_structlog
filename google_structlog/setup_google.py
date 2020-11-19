@@ -1,10 +1,10 @@
-from google.cloud.logging import Client
-from google.cloud.logging import _helpers
-from google.cloud.logging.handlers import CloudLoggingHandler
-from google.cloud.logging.handlers.transports.background_thread import _Worker, BackgroundThreadTransport
-from google.cloud.logging.handlers.transports.sync import SyncTransport
+from google.cloud.logging_v2 import Client
+from google.cloud.logging_v2 import _helpers
+from google.cloud.logging_v2.handlers import CloudLoggingHandler
+from google.cloud.logging_v2.handlers.transports.background_thread import _Worker, BackgroundThreadTransport
+from google.cloud.logging_v2.handlers.transports.sync import SyncTransport
 
-from google.cloud.logging.resource import Resource
+from google.cloud.logging_v2.resource import Resource
 
 from pythonjsonlogger import jsonlogger
 import structlog

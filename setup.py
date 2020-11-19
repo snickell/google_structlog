@@ -17,7 +17,7 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     install_requires=[
-        'google-cloud-logging',
+        'google-cloud-logging>=2.0.0',
         'python-json-logger',
         'structlog'
     ],
