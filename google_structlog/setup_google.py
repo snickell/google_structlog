@@ -82,7 +82,7 @@ def get_handler(logName):
   # we found that from google.cloud.logging.handlers.transports.background_thread.BackgroundThreadTransport
   # stopped transmitting logs to GCP. We're not sure why, but as a workaround we switched to using
   # a SyncTransport sub-class.
-  handler = CloudLoggingHandler(Client(), logName, transport=StructlogTransport, **kwargs)
+  handler = CloudLoggingHandler(Client(), name=logName, transport=StructlogTransport, **kwargs)
   handler.setFormatter(jsonlogger.JsonFormatter())
   return handler
 
