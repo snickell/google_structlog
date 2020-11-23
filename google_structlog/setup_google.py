@@ -2,7 +2,7 @@ from google.cloud.logging import Client
 from google.cloud.logging import _helpers
 from google.cloud.logging.handlers import CloudLoggingHandler
 from google.cloud.logging.handlers.transports.background_thread import BackgroundThreadTransport
-# from google.cloud.logging.handlers.transports.sync import SyncTransport
+from google.cloud.logging.handlers.transports.sync import SyncTransport
 
 from google.cloud.logging.resource import Resource
 
@@ -20,9 +20,14 @@ def flog(msg):
     daflog.write(str(msg) + "\n")
 
 class StructlogTransport(BackgroundThreadTransport):
+  def _get_internal_logger(self):
+    # Yuck! With SyncTransport we could just do self.logger, but here we
+    # are forced to fiddle with internal details that might break
+    return self.worker._cloud_logger
+
   def send(self, record, message, resource=None, labels=None, trace=None, span_id=None):
     info = queue_entry_from_structlog_json(record, message, resource=None, labels=None, trace=None, span_id=None)
-    self.logger.log_struct(
+    self._get_internal_logger().log_struct(
         info,
         severity=_helpers._normalize_severity(record.levelno),
         resource=resource,
@@ -122,7 +127,7 @@ def setup_google_logger(log_name=get_default_logging_namespace()):
   google_handler = None
   def _setup_google_logger():
     nonlocal google_handler
-    
+
     flog("_setup_google_logger()")
     root_logger = logging.getLogger()
 
