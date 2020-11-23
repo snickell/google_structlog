@@ -24,3 +24,11 @@ logger = getLogger()
 sublogger = logger.bind(source='Robot', target='Will Robinson')
 sublogger.warn('Danger Will Robinson: impending maintenance', threat='Responsibility')
 ```
+
+Releasing a new version to pypi
+=====
+
+- Bump version in `setup.py`, make sure we stay ahead of Chrome and Firefox
+- Remove old version(s) from `dist/*` if needed
+- `python3 setup.py sdist bdist_wheel`
+- `twine upload dist/*`
