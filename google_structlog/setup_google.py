@@ -121,6 +121,8 @@ def setup_google_logger(log_name=get_default_logging_namespace()):
   
   google_handler = None
   def _setup_google_logger():
+    nonlocal google_handler
+    
     flog("_setup_google_logger()")
     root_logger = logging.getLogger()
 
