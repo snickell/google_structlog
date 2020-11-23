@@ -1,8 +1,8 @@
 from google.cloud.logging import Client
 from google.cloud.logging import _helpers
 from google.cloud.logging.handlers import CloudLoggingHandler
-from google.cloud.logging.handlers.transports.background_thread import _Worker, BackgroundThreadTransport
-from google.cloud.logging.handlers.transports.sync import SyncTransport
+from google.cloud.logging.handlers.transports.background_thread import BackgroundThreadTransport
+# from google.cloud.logging.handlers.transports.sync import SyncTransport
 
 from google.cloud.logging.resource import Resource
 
@@ -10,16 +10,16 @@ from pythonjsonlogger import jsonlogger
 import structlog
 
 from functools import lru_cache as only_run_once
-import datetime
 import json
 import logging
 import requests
+import os
 
 # def flog(msg):
 #   with open('/tmp/hotflights.flog', 'a') as daflog:
 #     daflog.write(str(msg) + "\n")
 
-class StructlogTransport(SyncTransport):
+class StructlogTransport(BackgroundThreadTransport):
   def send(self, record, message, resource=None, labels=None, trace=None, span_id=None):
     info = queue_entry_from_structlog_json(record, message, resource=None, labels=None, trace=None, span_id=None)
     self.logger.log_struct(
@@ -44,23 +44,6 @@ def queue_entry_from_structlog_json(record, message, resource=None, labels=None,
       info["message"] = info.get(STRUCTLOG_MESSAGE_KEY)
       info.pop(STRUCTLOG_MESSAGE_KEY, None)
   return info
-
-#
-# def monkeypatch_google_enqueue():
-#   def decode_structlog_json_then_enqueue(self, record, message, resource=None, labels=None, trace=None, span_id=None):
-#       info = queue_entry_from_structlog_json(record, message, resource, labels, trace, span_id)
-#       queue_entry = {
-#         "info": info,
-#         "severity": _helpers._normalize_severity(record.levelno),
-#         "resource": resource,
-#         "labels": labels,
-#         "trace": trace,
-#         "span_id": span_id,
-#         "timestamp": datetime.datetime.utcfromtimestamp(record.created),
-#       }    
-#       self._queue.put_nowait(queue_entry)
-
-#   _Worker.enqueue = decode_structlog_json_then_enqueue
 
 def configure_structlog():
   structlog.configure(
@@ -134,10 +117,20 @@ def get_log_resource_for_gce_instance():
 @only_run_once(maxsize=32)
 def setup_google_logger(log_name=get_default_logging_namespace()):
   configure_structlog()
-  # monkeypatch_google_enqueue()
-
-  google_handler = get_handler(log_name)
   
-  # Add google_structlog handler to the root logger
-  root_logger = logging.getLogger()
-  root_logger.addHandler(google_handler)
+  google_handler = None
+  def _setup_google_logger():
+    root_logger = logging.getLogger()
+
+    if google_handler:
+      root_logger.removeHandler(google_handler)
+
+    # Add google_structlog handler to the root logger
+    google_handler = get_handler(log_name)
+    root_logger.addHandler(google_handler)
+
+  _setup_google_logger()
+
+  # If using celery or multiprocessing, we need to restart the 
+  # google logging handler thread after a fork
+  os.register_at_fork(after_in_child=_setup_google_logger)
