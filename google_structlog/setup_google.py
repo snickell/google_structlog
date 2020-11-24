@@ -14,30 +14,54 @@ import json
 import logging
 import requests
 import os
+import datetime
 
 def flog(msg):
   with open('/tmp/hotflights.flog', 'a') as daflog:
     daflog.write(str(msg) + "\n")
 
 class StructlogTransport(BackgroundThreadTransport):
-  def _get_internal_logger(self):
-    # Yuck! With SyncTransport we could just do self.logger, but here we
-    # are forced to fiddle with internal details that might break
-    return self.worker._cloud_logger
 
   def send(self, record, message, resource=None, labels=None, trace=None, span_id=None):
-    print("StructlogTransport.send(" + str(record) + ", " + str(message) + ")")
-    info = queue_entry_from_structlog_json(record, message, resource=None, labels=None, trace=None, span_id=None)
+    # print("StructlogTransport.send(" + str(record) + ", " + str(message) + ")")
+    info = _queue_entry_from_structlog_json(record, message, resource=None, labels=None, trace=None, span_id=None)
     super().send(
       record,
-      message,
+      info,
       resource=resource,
       labels=labels,
       trace=trace,
       span_id=span_id,
     )
 
-def queue_entry_from_structlog_json(record, message, resource=None, labels=None, trace=None, span_id=None):  
+    self.worker.enqueue(
+        record,
+        message,
+        resource=resource,
+        labels=labels,
+        trace=trace,
+        span_id=span_id,
+    )
+
+  # Enqueue to the Google Logging BackgroundThreadTransport
+  # without nesting our info JSON object in a message { } sub-object
+  #
+  # This code is adapted from here:
+  # https://github.com/googleapis/python-logging/blob/85242c00655424672616ed1e5b6e3cdcb6e8990a/google/cloud/logging_v2/handlers/transports/background_thread.py#L225-L250
+  def _worker_enqueue(self, record, info, resource=None, labels=None, trace=None, span_id=None):
+      queue_entry = {
+          "info": info,
+          "severity": _helpers._normalize_severity(record.levelno),
+          "resource": resource,
+          "labels": labels,
+          "trace": trace,
+          "span_id": span_id,
+          "timestamp": datetime.datetime.utcfromtimestamp(record.created),
+      }
+      self.worker._queue.put_nowait(queue_entry)
+
+
+def _queue_entry_from_structlog_json(record, message, resource=None, labels=None, trace=None, span_id=None):  
   try:
     info = json.loads(message)
   except json.decoder.JSONDecodeError:
