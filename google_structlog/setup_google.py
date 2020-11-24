@@ -26,7 +26,7 @@ class StructlogTransport(BackgroundThreadTransport):
     return self.worker._cloud_logger
 
   def send(self, record, message, resource=None, labels=None, trace=None, span_id=None):
-    print("StructlogTransport.send(" + str(message) + ")")
+    print("StructlogTransport.send(" + "record" + ", " + str(message) + ")")
     info = queue_entry_from_structlog_json(record, message, resource=None, labels=None, trace=None, span_id=None)
     super().send(
       info,
