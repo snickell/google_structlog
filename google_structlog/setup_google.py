@@ -16,14 +16,12 @@ import requests
 import os
 import datetime
 
-def flog(msg):
-  with open('/tmp/hotflights.flog', 'a') as daflog:
-    daflog.write(str(msg) + "\n")
+# def flog(msg):
+#   with open('/tmp/hotflights.flog', 'a') as daflog:
+#     daflog.write(str(msg) + "\n")
 
 class StructlogTransport(BackgroundThreadTransport):
-
   def send(self, record, message, **kwargs):
-    # print("StructlogTransport.send(" + str(record) + ", " + str(message) + ")")
     info = _queue_entry_from_structlog_json(record, message, resource=None, labels=None, trace=None, span_id=None)
     self._worker_enqueue(record, info, **kwargs)
 
@@ -130,30 +128,23 @@ def get_log_resource_for_gce_instance():
 
 @only_run_once(maxsize=32)
 def setup_google_logger(log_name=get_default_logging_namespace()):
-  flog("setup_google_logger()")
   configure_structlog()
   
   google_handler = None
   def _setup_google_logger():
     nonlocal google_handler
 
-    flog("_setup_google_logger()")
     root_logger = logging.getLogger()
 
     if google_handler:
-      flog("removing existing handler")
       root_logger.removeHandler(google_handler)
-    else:
-      flog("no existing handler")
 
     # Add google_structlog handler to the root logger
     google_handler = get_handler(log_name)
     root_logger.addHandler(google_handler)
-    flog("exiting _setup_google_logger()")
 
   _setup_google_logger()
 
   # If using celery or multiprocessing, we need to restart the 
   # google logging handler thread after a fork
   os.register_at_fork(after_in_child=_setup_google_logger)
-  flog("exiting setup_google_logger()")
