@@ -15,7 +15,7 @@ def getLogger(*args, **kwargs):
 def setup(namespace=None, setup_google=True, setup_stdout=True):
   if setup_google:
     # Stream structured logs to Google Cloud's Stackdriver
-    setup_google_logger()
+    setup_google_logger(log_name=namespace)
 
   if setup_stdout:
     # Stream unstructured logs to STDOUT
