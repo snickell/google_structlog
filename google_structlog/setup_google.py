@@ -30,7 +30,7 @@ class StructlogTransport(BackgroundThreadTransport):
     info = queue_entry_from_structlog_json(record, message, resource=None, labels=None, trace=None, span_id=None)
     super().send(
       record,
-      info,
+      message,
       resource=resource,
       labels=labels,
       trace=trace,
