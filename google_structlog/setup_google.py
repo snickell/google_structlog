@@ -22,26 +22,10 @@ def flog(msg):
 
 class StructlogTransport(BackgroundThreadTransport):
 
-  def send(self, record, message, resource=None, labels=None, trace=None, span_id=None):
+  def send(self, record, message, **kwargs):
     # print("StructlogTransport.send(" + str(record) + ", " + str(message) + ")")
     info = _queue_entry_from_structlog_json(record, message, resource=None, labels=None, trace=None, span_id=None)
-    super().send(
-      record,
-      info,
-      resource=resource,
-      labels=labels,
-      trace=trace,
-      span_id=span_id,
-    )
-
-    self.worker.enqueue(
-        record,
-        message,
-        resource=resource,
-        labels=labels,
-        trace=trace,
-        span_id=span_id,
-    )
+    self._worker_enqueue(record, info, **kwargs)
 
   # Enqueue to the Google Logging BackgroundThreadTransport
   # without nesting our info JSON object in a message { } sub-object
