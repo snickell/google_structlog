@@ -28,13 +28,12 @@ class StructlogTransport(BackgroundThreadTransport):
   def send(self, record, message, resource=None, labels=None, trace=None, span_id=None):
     print("StructlogTransport.send(" + str(message) + ")")
     info = queue_entry_from_structlog_json(record, message, resource=None, labels=None, trace=None, span_id=None)
-    self._get_internal_logger().log_struct(
-        info,
-        severity=_helpers._normalize_severity(record.levelno),
-        resource=resource,
-        labels=labels,
-        trace=trace,
-        span_id=span_id,
+    super().send(
+      info,
+      resource=resource,
+      labels=labels,
+      trace=trace,
+      span_id=span_id,
     )
 
 def queue_entry_from_structlog_json(record, message, resource=None, labels=None, trace=None, span_id=None):  
