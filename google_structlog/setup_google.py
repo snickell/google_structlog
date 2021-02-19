@@ -59,11 +59,14 @@ def _queue_entry_from_structlog_json(record, message, resource=None, labels=None
     return info
 
 
-def configure_structlog():
-    structlog.configure(
+def configure_structlog(processors):
+    if not processors:
         processors=[
             structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
-        ],
+        ]
+        
+    structlog.configure(
+        processors=processors,
         logger_factory=structlog.stdlib.LoggerFactory(),
     )
 
@@ -132,8 +135,8 @@ def get_log_resource_for_gce_instance():
 
 
 @only_run_once(maxsize=32)
-def setup_google_logger(log_name=get_default_logging_namespace()):
-    configure_structlog()
+def setup_google_logger(log_name=get_default_logging_namespace(),processors=[]):
+    configure_structlog(processors)
 
     google_handler = None
 
