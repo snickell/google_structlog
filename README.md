@@ -32,4 +32,4 @@ Releasing a new version to pypi
 - `rm -rf ./dist/*` if needed to remove past versions
 - `python3 setup.py sdist bdist_wheel`
 - `twine upload dist/*`
-- Login to pypi as `snickell` lol
+- Login to pypi as `snickell` lol (but seriously, TODO: not sure how to share PyPi creds with @ceresimaging)
