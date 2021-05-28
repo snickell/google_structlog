@@ -8,6 +8,7 @@ setuptools.setup(
     version="43.12.0",
     author="Seth Nickell",
     author_email="snickell@gmail.com",
+    url='https://github.com/snickell/google_structlog',
     description="Send queryable JSON structured logs to Google Cloud (GCP) stackdriver from python apps",
     long_description=long_description,
     long_description_content_type="text/markdown",
